@@ -21,7 +21,7 @@ jobs:
         tag=toolcache
         echo "::set-output name=tag::$tag"
     - name: Check if already built
-      run: '! curl -s --head --fail https://github.com/ruby/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ matrix.ruby }}-${{ matrix.os }}.tar.gz'
+      run: '! curl -s --head --fail https://github.com/philr/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ matrix.ruby }}-${{ matrix.os }}.tar.gz'
 
     # Ruby <= 2.3 needs OpenSSL 1.0.2 which cannot be installed on Ubuntu 16.04 and macos-latest.
     # To workaround that, we use a branch of ruby-build which builds its own OpenSSL.
@@ -97,8 +97,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        # curl -s "https://api.github.com/repos/ruby/ruby-builder/releases/tags/$TAG" | jq -r .upload_url
-        upload_url: 'https://uploads.github.com/repos/ruby/ruby-builder/releases/33599578/assets{?name,label}'
+        # curl -s "https://api.github.com/repos/philr/ruby-builder/releases/tags/$TAG" | jq -r .upload_url
+        upload_url: 'https://uploads.github.com/repos/philr/ruby-builder/releases/35586572/assets{?name,label}'
         asset_path: ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz
         asset_name: ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz
         asset_content_type: application/gzip
@@ -120,7 +120,7 @@ jobs:
         echo "::set-output name=tag::$tag"
       shell: bash
     - name: Check if already built
-      run: '! curl -s --head --fail https://github.com/ruby/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ matrix.ruby }}-${{ matrix.os }}.tar.gz'
+      run: '! curl -s --head --fail https://github.com/philr/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ matrix.ruby }}-${{ matrix.os }}.tar.gz'
       shell: bash
 
     - name: Set PREFIX
@@ -177,8 +177,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        # curl -s "https://api.github.com/repos/ruby/ruby-builder/releases/tags/$TAG" | jq -r .upload_url
-        upload_url: 'https://uploads.github.com/repos/ruby/ruby-builder/releases/33599578/assets{?name,label}'
+        # curl -s "https://api.github.com/repos/philr/ruby-builder/releases/tags/$TAG" | jq -r .upload_url
+        upload_url: 'https://uploads.github.com/repos/philr/ruby-builder/releases/35586572/assets{?name,label}'
         asset_path: ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz
         asset_name: ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz
         asset_content_type: application/gzip

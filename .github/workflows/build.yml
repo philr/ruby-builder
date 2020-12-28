@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest ]
-        ruby: ["ruby-2.0.0-p648"]
+        ruby: ["ruby-1.9.3-p551"]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -27,8 +27,8 @@ jobs:
     # To workaround that, we use a branch of ruby-build which builds its own OpenSSL.
     - name: Clone ruby-build
       run: |
-        if [[ "${{ matrix.ruby }}" == ruby-2.[0123]* ]]; then
-          git clone --branch ruby23-openssl-linux https://github.com/eregon/ruby-build.git
+        if [[ "${{ matrix.ruby }}" == ruby-2.[0123]* || "${{ matrix.ruby }}" == ruby-1* ]]; then
+          git clone --branch ruby23-openssl-linux https://github.com/philr/ruby-build.git
         else
           git clone https://github.com/rbenv/ruby-build.git
         fi
@@ -68,7 +68,7 @@ jobs:
     # macOS runners seem to default to -Werror=implicit-function-declaration, but extconf.rb expects it to be not fatal
     - name: Set warnflags for Ruby <= 2.2
       run: echo "warnflags=-Wno-error=implicit-function-declaration" >> $GITHUB_ENV
-      if: startsWith(matrix.ruby, 'ruby-2.0') || startsWith(matrix.ruby, 'ruby-2.1') || startsWith(matrix.ruby, 'ruby-2.2')
+      if: startsWith(matrix.ruby, 'ruby-1') || startsWith(matrix.ruby, 'ruby-2.0') || startsWith(matrix.ruby, 'ruby-2.1') || startsWith(matrix.ruby, 'ruby-2.2')
     - name: Build Ruby
       run: ruby-build --verbose $RUBY_BUILD_RUBY_NAME $PREFIX
       env:

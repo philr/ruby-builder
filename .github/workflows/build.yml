@@ -91,7 +91,7 @@ jobs:
     - run: echo "$PREFIX/bin" >> $GITHUB_PATH
     - run: ruby --version
     - run: ruby -ropen-uri -e 'puts URI.send(:open, %{https://rubygems.org/}) { |f| f.read(1024) }'
-    - run: gem install json:2.2.0 --no-rdoc --no-ri
+    - run: gem install json -v 2.2.0 --no-rdoc --no-ri
       if: startsWith(matrix.ruby, 'ruby-1')
     - run: gem install json:2.2.0 --no-document
       if: ${{ !startsWith(matrix.ruby, 'ruby-1') }}

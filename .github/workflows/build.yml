@@ -75,7 +75,7 @@ jobs:
     - name: Build Ruby
       run: |
         if [[ $RUBY_BUILD_RUBY_NAME == 1.8.7* ]]; then
-          ruby-build --patch --verbose $RUBY_BUILD_RUBY_NAME $PREFIX < patches/ruby/1.8.7.patch
+          ruby-build --patch --verbose $RUBY_BUILD_RUBY_NAME $PREFIX < patches/ruby/1.8.7-enable-ssl-sni.patch
         else
           ruby-build --verbose $RUBY_BUILD_RUBY_NAME $PREFIX
         fi
@@ -93,7 +93,7 @@ jobs:
 
     # https://rubygems.org requires SNI. Patch bundler to add support to 1.17.3 on Ruby 1.8.7 (later Ruby versions work).
     - name: Patch Bundler to enable SSL SNI if needed
-      run: patch -p1 -d "$(dirname $($PREFIX/bin/gem which bundler))" < patches/bundler/1.17.3-on-1.8.7-enable-ssl-sni.patch
+      run: patch -p2 -d "$(dirname $($PREFIX/bin/gem which bundler))" < patches/bundler/1.17.3-on-1.8.7-enable-ssl-sni.patch
       if: startsWith(matrix.ruby, 'ruby-1.8')
 
     - run: echo "$PREFIX/bin" >> $GITHUB_PATH

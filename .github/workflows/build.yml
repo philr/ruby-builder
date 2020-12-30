@@ -10,8 +10,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest ]
-        ruby: ["ruby-1.9.3-p551"]
+        os: [ ubuntu-16.04, ubuntu-18.04, ubuntu-20.04 ]
+        ruby: ["ruby-1.8.7-p375"]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -82,8 +82,7 @@ jobs:
       env:
         RUBY_CONFIGURE_OPTS: --enable-shared --disable-install-doc
         CPPFLAGS: "-DENABLE_PATH_CHECK=0" # https://github.com/actions/virtual-environments/issues/267
-    - name: Create archive
-      run: tar czf ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz -C $(dirname $PREFIX) $(basename $PREFIX)
+
     - name: Install Bundler if needed
       run: |
         if [ ! -e $PREFIX/bin/bundle ]; then
@@ -95,6 +94,9 @@ jobs:
     - name: Patch Bundler to enable SSL SNI if needed
       run: patch -p2 -d "$(dirname $($PREFIX/bin/gem which bundler))" < patches/bundler/1.17.3-on-1.8.7-enable-ssl-sni.patch
       if: startsWith(matrix.ruby, 'ruby-1.8')
+
+    - name: Create archive
+      run: tar czf ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz -C $(dirname $PREFIX) $(basename $PREFIX)
 
     - run: echo "$PREFIX/bin" >> $GITHUB_PATH
     - run: ruby --version

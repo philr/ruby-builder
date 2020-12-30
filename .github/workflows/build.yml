@@ -99,7 +99,7 @@ jobs:
     - run: echo "$PREFIX/bin" >> $GITHUB_PATH
     - run: ruby --version
     - run: ruby -ropen-uri -e 'puts URI.send(:open, %{https://rubygems.org/}) { |f| f.read(1024) }'
-    - run: gem install json:2.2.0 --no-document
+    - run: gem install json:1.8.6 --no-document
     - run: bundle --version
     - run: bundle install
     - run: bundle exec rake --version

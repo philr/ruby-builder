@@ -10,8 +10,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-16.04, ubuntu-18.04, ubuntu-20.04 ]
-        ruby: ["ruby-1.8.7-p375"]
+        os: [ ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest ]
+        ruby: [ jruby-1.7.27, jruby-9.0.5.0 ]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -25,10 +25,12 @@ jobs:
 
     # Ruby <= 2.3 needs OpenSSL 1.0.2 which cannot be installed on Ubuntu 16.04 and macos-latest.
     # To workaround that, we use a branch of ruby-build which builds its own OpenSSL.
-    # This branch also updates Ruby 1.8.7-p375 and 1.9.3-p551 to newer versions of RubyGems.
+    # This branch also updates Ruby 1.8.7-p375 and 1.9.3-p551 to newer versions of RubyGems
+    # and uses an alternative build of JRuby 9.0.5.0 to fix an issue connecting to
+    # https://rubygems.org.
     - name: Clone ruby-build
       run: |
-        if [[ "${{ matrix.ruby }}" == ruby-2.[0123]* || "${{ matrix.ruby }}" == ruby-1* ]]; then
+        if [[ "${{ matrix.ruby }}" == ruby-2.[0123]* || "${{ matrix.ruby }}" == ruby-1* || "${{ matrix.ruby }}" == jruby-9.0.5.0 ]]; then
           git clone --branch ruby-builder-legacy-support https://github.com/philr/ruby-build.git
         else
           git clone https://github.com/rbenv/ruby-build.git
@@ -83,11 +85,20 @@ jobs:
         RUBY_CONFIGURE_OPTS: --enable-shared --disable-install-doc
         CPPFLAGS: "-DENABLE_PATH_CHECK=0" # https://github.com/actions/virtual-environments/issues/267
 
+    - id: gemoptions
+      run: |
+        if gem help install | grep -q no-document; then
+          echo '::set-output name=gemoptions::--no-document'
+        else
+          echo '::set-output name=gemoptions::--no-rdoc --no-ri'
+        fi
+      shell: bash
+
     - name: Install Bundler if needed
       run: |
         if [ ! -e $PREFIX/bin/bundle ]; then
           export PATH="$PREFIX/bin:$PATH"
-          gem install bundler -v '~> 1' --no-document
+          gem install bundler -v '~> 1' ${{ steps.gemoptions.outputs.gemoptions }}
         fi
 
     # https://rubygems.org requires SNI. Patch bundler to add support to 1.17.3 on Ruby 1.8.7 (later Ruby versions work).
@@ -101,7 +112,7 @@ jobs:
     - run: echo "$PREFIX/bin" >> $GITHUB_PATH
     - run: ruby --version
     - run: ruby -ropen-uri -e 'puts URI.send(:open, %{https://rubygems.org/}) { |f| f.read(1024) }'
-    - run: gem install json:1.8.6 --no-document
+    - run: gem install json -v 1.8.6 ${{ steps.gemoptions.outputs.gemoptions }}
     - run: bundle --version
     - run: bundle install
     - run: bundle exec rake --version
@@ -119,12 +130,13 @@ jobs:
         asset_content_type: application/gzip
 
   buildJRubyWindows:
-    if: false
+    if: true
     strategy:
       fail-fast: false
       matrix:
         include:
-        - { os: windows-latest, jruby-version: 9.2.14.0, ruby: jruby-9.2.14.0 }
+        - { os: windows-latest, jruby-version: 1.7.20, ruby: jruby-1.7.20 }
+        - { os: windows-latest, jruby-version: 9.0.5.0, ruby: jruby-9.0.5.0 }
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -143,6 +155,13 @@ jobs:
       shell: bash
     - run: curl --fail -L -O 'https://repo1.maven.org/maven2/org/jruby/jruby-dist/${{ matrix.jruby-version }}/jruby-dist-${{ matrix.jruby-version }}-bin.tar.gz'
       shell: bash
+      if: matrix.jruby-version != '9.0.5.0'
+
+      # Use a rebuilt version of 9.0.5.0 to fix issues connecting to https://rubygems.org.
+      # https://github.com/philr/jruby/releases/tag/9.0.5.0-jruby-openssl-0.9.21
+    - run: curl --fail -L -O 'https://github.com/philr/jruby/releases/download/9.0.5.0-jruby-openssl-0.9.21/jruby-dist-9.0.5.0-bin.tar.gz'
+      shell: bash
+      if: matrix.jruby-version == '9.0.5.0'
     - name: Build JRuby
       shell: bash
       run: |
@@ -156,12 +175,20 @@ jobs:
     - name: Create archive
       run: tar czf ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz -C $(dirname $PREFIX) $(basename $PREFIX)
       shell: bash
+    - id: gemoptions
+      run: |
+        if gem help install | grep -q no-document; then
+          echo '::set-output name=gemoptions::--no-document'
+        else
+          echo '::set-output name=gemoptions::--no-rdoc --no-ri'
+        fi
+      shell: bash
     - name: Install Bundler if needed
       shell: bash
       run: |
         if [ ! -e $PREFIX/bin/bundle ]; then
           export PATH="$PREFIX/bin:$PATH"
-          gem install bundler -v '~> 1' --no-document
+          gem install bundler -v '~> 1' ${{ steps.gemoptions.outputs.gemoptions }}
         fi
 
     - run: echo "$Env:UserProfile\.rubies\${{ matrix.ruby }}\bin" >> $Env:GITHUB_PATH
@@ -169,7 +196,7 @@ jobs:
 
     - run: ruby --version
     - run: ruby -ropen-uri -e 'puts URI.send(:open, %{https://rubygems.org/}) { |f| f.read(1024) }'
-    - run: gem install json:2.2.0 --no-document
+    - run: gem install json -v 1.8.6 ${{ steps.gemoptions.outputs.gemoptions }}
     - run: bundle --version
     - run: bundle install
     - run: bundle exec rake --version
@@ -178,7 +205,7 @@ jobs:
       shell: bash
     - run: ruby -ropen-uri -e 'puts URI.send(:open, %{https://rubygems.org/}) { |f| f.read(1024) }'
       shell: bash
-    - run: gem install json:2.2.0 --no-document
+    - run: gem install json -v 1.8.6 ${{ steps.gemoptions.outputs.gemoptions }}
       shell: bash
     - run: bundle --version
       shell: bash

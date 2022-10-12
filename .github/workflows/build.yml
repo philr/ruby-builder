@@ -135,8 +135,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - { os: windows-latest, jruby-version: 1.7.20, ruby: jruby-1.7.20 }
-        - { os: windows-latest, jruby-version: 9.0.5.0, ruby: jruby-9.0.5.0 }
+        - { os: windows-latest, jruby-version: 1.7.27, ruby: jruby-1.7.27 }
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3

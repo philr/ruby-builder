@@ -19,7 +19,7 @@ jobs:
       id: info
       run: |
         tag=toolcache
-        echo "::set-output name=tag::$tag"
+        echo "tag=$tag" >> $GITHUB_OUTPUT
     - name: Check if already built
       run: '! curl -s --head --fail https://github.com/philr/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ matrix.ruby }}-${{ matrix.os }}.tar.gz'
 
@@ -88,9 +88,9 @@ jobs:
     - id: gemoptions
       run: |
         if gem help install | grep -q no-document; then
-          echo '::set-output name=gemoptions::--no-document'
+          echo 'gemoptions=--no-document' >> $GITHUB_OUTPUT
         else
-          echo '::set-output name=gemoptions::--no-rdoc --no-ri'
+          echo 'gemoptions=--no-rdoc --no-ri' >> $GITHUB_OUTPUT
         fi
       shell: bash
 
@@ -143,7 +143,7 @@ jobs:
       id: info
       run: |
         tag=toolcache
-        echo "::set-output name=tag::$tag"
+        echo "tag=$tag" >> $GITHUB_OUTPUT
       shell: bash
     - name: Check if already built
       run: '! curl -s --head --fail https://github.com/philr/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ matrix.ruby }}-${{ matrix.os }}.tar.gz'
@@ -177,9 +177,9 @@ jobs:
     - id: gemoptions
       run: |
         if gem help install | grep -q no-document; then
-          echo '::set-output name=gemoptions::--no-document'
+          echo 'gemoptions=--no-document' >> $GITHUB_OUTPUT
         else
-          echo '::set-output name=gemoptions::--no-rdoc --no-ri'
+          echo 'gemoptions=--no-rdoc --no-ri' >> $GITHUB_OUTPUT
         fi
       shell: bash
     - name: Install Bundler if needed

@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04 ]
+        os: [ ubuntu-24.04, macos-14 ]
         ruby: [ ruby-1.9.3-p551, jruby-1.7.27, jruby-9.0.5.0 ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -20,8 +20,24 @@ jobs:
       run: |
         tag=toolcache
         echo "tag=$tag" >> $GITHUB_OUTPUT
+    - name: Set platform
+      id: platform
+      run: |
+        platform=${{ matrix.os }}
+        platform=${platform/macos-12/macos-latest}
+        platform=${platform/macos-13/macos-latest}
+        platform=${platform/macos-14/macos-14-arm64}
+        echo "platform=$platform" >> $GITHUB_OUTPUT
+    - name: Set ruby
+      id: ruby
+      run: |
+        ruby=${{ matrix.ruby }}
+        if [[ "$ruby" == [0-9]* ]]; then
+          ruby="ruby-$ruby"
+        fi
+        echo "ruby=$ruby" >> $GITHUB_OUTPUT
     - name: Check if already built
-      run: '! curl -s --head --fail https://github.com/philr/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ matrix.ruby }}-${{ matrix.os }}.tar.gz'
+      run: '! curl -s --head --fail https://github.com/philr/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz'
 
     # Ruby <= 2.3 needs OpenSSL 1.0.2 which cannot be installed on Ubuntu 16.04 and macos-latest.
     # To workaround that, we use a branch of ruby-build which builds its own OpenSSL.
@@ -30,7 +46,7 @@ jobs:
     # https://rubygems.org.
     - name: Clone ruby-build
       run: |
-        if [[ "${{ matrix.ruby }}" == ruby-2.[0123]* || "${{ matrix.ruby }}" == ruby-1* || "${{ matrix.ruby }}" == jruby-9.0.5.0 ]]; then
+        if [[ "${{ steps.ruby.outputs.ruby }}" == ruby-2.[0123]* || "${{ steps.ruby.outputs.ruby }}" == ruby-1* || "${{ steps.ruby.outputs.ruby }}" == jruby-9.0.5.0 ]]; then
           git clone --branch ruby-builder-legacy-support https://github.com/philr/ruby-build.git
         else
           git clone https://github.com/rbenv/ruby-build.git
@@ -43,15 +59,15 @@ jobs:
 
       # Install packages
     - run: sudo apt-get install -y --no-install-recommends libyaml-dev libgdbm-dev libreadline-dev libncurses5-dev
-      if: startsWith(matrix.os, 'ubuntu') && startsWith(matrix.ruby, 'ruby-')
+      if: startsWith(matrix.os, 'ubuntu') && startsWith(steps.ruby.outputs.ruby, 'ruby-')
 
     - name: Install system ruby for ruby-2.5.2
       run: sudo apt-get install -y --no-install-recommends ruby
-      if: startsWith(matrix.os, 'ubuntu') && matrix.ruby == 'ruby-2.5.2'
+      if: startsWith(matrix.os, 'ubuntu') && steps.ruby.outputs.ruby == 'ruby-2.5.2'
 
     - name: Set RUBY_BUILD_RUBY_NAME
       run: |
-        ruby="${{ matrix.ruby }}"
+        ruby="${{ steps.ruby.outputs.ruby }}"
         if [[ $ruby == ruby-* ]]; then
           echo "RUBY_BUILD_RUBY_NAME=${ruby#ruby-}" >> $GITHUB_ENV
         else
@@ -59,7 +75,7 @@ jobs:
         fi
     - name: Set PREFIX
       run: |
-        ruby="${{ matrix.ruby }}"
+        ruby="${{ steps.ruby.outputs.ruby }}"
         if [[ $ruby == ruby-* ]]; then
           # See https://github.com/ruby/setup-ruby/issues/98
           echo "PREFIX=$RUNNER_TOOL_CACHE/Ruby/${ruby#ruby-}/x64" >> $GITHUB_ENV
@@ -71,7 +87,7 @@ jobs:
     # macOS runners seem to default to -Werror=implicit-function-declaration, but extconf.rb expects it to be not fatal
     - name: Set warnflags for Ruby <= 2.2
       run: echo "warnflags=-Wno-error=implicit-function-declaration" >> $GITHUB_ENV
-      if: startsWith(matrix.ruby, 'ruby-1') || startsWith(matrix.ruby, 'ruby-2.0') || startsWith(matrix.ruby, 'ruby-2.1') || startsWith(matrix.ruby, 'ruby-2.2')
+      if: startsWith(steps.ruby.outputs.ruby, 'ruby-1') || startsWith(steps.ruby.outputs.ruby, 'ruby-2.0') || startsWith(steps.ruby.outputs.ruby, 'ruby-2.1') || startsWith(steps.ruby.outputs.ruby, 'ruby-2.2')
 
     # Use a patch for Ruby 1.8.7 to add support for SSL SNI (required to access https://rubygems.org).
     - name: Build Ruby
@@ -104,10 +120,10 @@ jobs:
     # https://rubygems.org requires SNI. Patch bundler to add support to 1.17.3 on Ruby 1.8.7 (later Ruby versions work).
     - name: Patch Bundler to enable SSL SNI if needed
       run: patch -p2 -d "$(dirname $($PREFIX/bin/gem which bundler))" < patches/bundler/1.17.3-on-1.8.7-enable-ssl-sni.patch
-      if: startsWith(matrix.ruby, 'ruby-1.8')
+      if: startsWith(steps.ruby.outputs.ruby, 'ruby-1.8')
 
     - name: Create archive
-      run: tar czf ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz -C $(dirname $PREFIX) $(basename $PREFIX)
+      run: tar czf ${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz -C $(dirname $PREFIX) $(basename $PREFIX)
 
     - run: echo "$PREFIX/bin" >> $GITHUB_PATH
     - run: ruby --version
@@ -125,8 +141,8 @@ jobs:
       with:
         # curl -s "https://api.github.com/repos/philr/ruby-builder/releases/tags/$TAG" | jq -r .upload_url
         upload_url: 'https://uploads.github.com/repos/philr/ruby-builder/releases/35586572/assets{?name,label}'
-        asset_path: ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz
-        asset_name: ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz
+        asset_path: ${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz
+        asset_name: ${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz
         asset_content_type: application/gzip
 
   buildJRubyWindows:
@@ -135,7 +151,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - { os: windows-latest, jruby-version: 1.7.27, ruby: jruby-1.7.27 }
+        - { os: windows-2019, jruby-version: 1.7.27 }
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
@@ -145,12 +161,25 @@ jobs:
         tag=toolcache
         echo "tag=$tag" >> $GITHUB_OUTPUT
       shell: bash
+    - name: Set platform
+      id: platform
+      run: |
+        platform=${{ matrix.os }}
+        platform=${platform/windows-*/windows-latest}
+        echo "platform=$platform" >> $GITHUB_OUTPUT
+      shell: bash
+    - name: Set ruby
+      id: ruby
+      run: |
+        ruby=jruby-${{ matrix.jruby-version }}
+        echo "ruby=$ruby" >> $GITHUB_OUTPUT
+      shell: bash
     - name: Check if already built
-      run: '! curl -s --head --fail https://github.com/philr/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ matrix.ruby }}-${{ matrix.os }}.tar.gz'
+      run: '! curl -s --head --fail https://github.com/philr/ruby-builder/releases/download/${{ steps.info.outputs.tag }}/${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz'
       shell: bash
 
     - name: Set PREFIX
-      run: echo "PREFIX=$HOME/.rubies/${{ matrix.ruby }}" >> $GITHUB_ENV
+      run: echo "PREFIX=$HOME/.rubies/${{ steps.ruby.outputs.ruby }}" >> $GITHUB_ENV
       shell: bash
     - run: curl --fail -L -O 'https://repo1.maven.org/maven2/org/jruby/jruby-dist/${{ matrix.jruby-version }}/jruby-dist-${{ matrix.jruby-version }}-bin.tar.gz'
       shell: bash
@@ -172,7 +201,7 @@ jobs:
         # Create ruby.bat, so 'ruby' works in pwsh
         echo -en "@ECHO OFF\r\n@\"%~dp0jruby.exe\" %*\r\n" > ruby.bat
     - name: Create archive
-      run: tar czf ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz -C $(dirname $PREFIX) $(basename $PREFIX)
+      run: tar czf ${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz -C $(dirname $PREFIX) $(basename $PREFIX)
       shell: bash
     - id: gemoptions
       run: |
@@ -190,7 +219,7 @@ jobs:
           gem install bundler -v '~> 1' ${{ steps.gemoptions.outputs.gemoptions }}
         fi
 
-    - run: echo "$Env:UserProfile\.rubies\${{ matrix.ruby }}\bin" >> $Env:GITHUB_PATH
+    - run: echo "$Env:UserProfile\.rubies\${{ steps.ruby.outputs.ruby }}\bin" >> $Env:GITHUB_PATH
     - run: echo $Env:PATH
 
     - run: ruby --version
@@ -220,6 +249,6 @@ jobs:
       with:
         # curl -s "https://api.github.com/repos/philr/ruby-builder/releases/tags/$TAG" | jq -r .upload_url
         upload_url: 'https://uploads.github.com/repos/philr/ruby-builder/releases/35586572/assets{?name,label}'
-        asset_path: ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz
-        asset_name: ${{ matrix.ruby }}-${{ matrix.os }}.tar.gz
+        asset_path: ${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz
+        asset_name: ${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz
         asset_content_type: application/gzip

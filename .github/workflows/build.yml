@@ -95,7 +95,18 @@ jobs:
     # Reduce from the default _FORTIFY_SOURCE level 3 to 2 on Ubuntu 24.04 to prevent a buffer overflow detected error when running miniruby as part of the build.
     - name: Set CPPFLAGS for Ruby 1.9.3 on Ubuntu 24.04
       run: echo "CPPFLAGS=$CPPFLAGS -D_FORTIFY_SOURCE=2" >> $GITHUB_ENV
-      if: startsWith(steps.ruby.outputs.ruby, 'ruby-1.9.3') && steps.platform.outputs.platform == 'ubuntu-24-04'
+      if: startsWith(steps.ruby.outputs.ruby, 'ruby-1.9.3') && steps.platform.outputs.platform == 'ubuntu-24.04'
+
+    # Use an older version of Java for JRuby on Ubuntu 24.04 and macOS 14. Prevents an error when running jruby to install gems:
+    #   JRuby 1.7.27: java.lang.reflect.InaccessibleObjectException: Unable to make protected final java.lang.Class
+    #   JRuby 9.0.5.0: java.lang.reflect.InaccessibleObjectException: Unable to make protected native java.lang.Object
+    - name: Set JAVA_HOME for JRuby on Ubuntu 24.04
+      run: echo "JAVA_HOME=$JAVA_HOME_11_X64" >> $GITHUB_ENV
+      if: startsWith(steps.ruby.outputs.ruby, 'jruby') && steps.platform.outputs.platform == 'ubuntu-24.04'
+
+    - name: Set JAVA_HOME for JRuby on macOS 14
+      run: echo "JAVA_HOME=$JAVA_HOME_11_arm64" >> $GITHUB_ENV
+      if: startsWith(steps.ruby.outputs.ruby, 'jruby') && steps.platform.outputs.platform == 'macos-14-arm64'
 
     # Use a patch for Ruby 1.8.7 to add support for SSL SNI (required to access https://rubygems.org).
     - name: Build Ruby

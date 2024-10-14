@@ -89,6 +89,14 @@ jobs:
       run: echo "warnflags=-Wno-error=implicit-function-declaration" >> $GITHUB_ENV
       if: startsWith(steps.ruby.outputs.ruby, 'ruby-1') || startsWith(steps.ruby.outputs.ruby, 'ruby-2.0') || startsWith(steps.ruby.outputs.ruby, 'ruby-2.1') || startsWith(steps.ruby.outputs.ruby, 'ruby-2.2')
 
+    - name: Set CPPFLAGS
+      run: echo "CPPFLAGS=-DENABLE_PATH_CHECK=0" >> $GITHUB_ENV
+
+    # Reduce from the default _FORTIFY_SOURCE level 3 to 2 on Ubuntu 24.04 to prevent a buffer overflow detected error when running miniruby as part of the build.
+    - name: Set CPPFLAGS for Ruby 1.9.3 on Ubuntu 24.04
+      run: echo "CPPFLAGS=$CPPFLAGS -D_FORTIFY_SOURCE=2" >> $GITHUB_ENV
+      if: startsWith(steps.ruby.outputs.ruby, 'ruby-1.9.3') && steps.platform.outputs.platform == 'ubuntu-24-04'
+
     # Use a patch for Ruby 1.8.7 to add support for SSL SNI (required to access https://rubygems.org).
     - name: Build Ruby
       run: |
@@ -99,7 +107,6 @@ jobs:
         fi
       env:
         RUBY_CONFIGURE_OPTS: --enable-shared --disable-install-doc
-        CPPFLAGS: "-DENABLE_PATH_CHECK=0" # https://github.com/actions/virtual-environments/issues/267
 
     - id: gemoptions
       run: |

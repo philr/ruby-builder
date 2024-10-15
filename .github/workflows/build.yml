@@ -105,7 +105,11 @@ jobs:
       run: echo "JAVA_HOME=$JAVA_HOME_11_X64" >> $GITHUB_ENV
       if: startsWith(steps.ruby.outputs.ruby, 'jruby') && steps.platform.outputs.platform == 'ubuntu-24.04'
 
-    - name: Set JAVA_HOME for JRuby on macOS 14
+    - name: Set JAVA_HOME for JRuby on macOS
+      run: echo "JAVA_HOME=$JAVA_HOME_11_X64" >> $GITHUB_ENV
+      if: startsWith(steps.ruby.outputs.ruby, 'jruby') && steps.platform.outputs.platform == 'macos-latest'
+
+    - name: Set JAVA_HOME for JRuby on macOS 14 (arm64)
       run: echo "JAVA_HOME=$JAVA_HOME_11_arm64" >> $GITHUB_ENV
       if: startsWith(steps.ruby.outputs.ruby, 'jruby') && steps.platform.outputs.platform == 'macos-14-arm64'
 

@@ -78,7 +78,8 @@ jobs:
         ruby="${{ steps.ruby.outputs.ruby }}"
         if [[ $ruby == ruby-* ]]; then
           # See https://github.com/ruby/setup-ruby/issues/98
-          echo "PREFIX=$RUNNER_TOOL_CACHE/Ruby/${ruby#ruby-}/x64" >> $GITHUB_ENV
+          arch=$(node -e 'console.log(os.arch())')
+          echo "PREFIX=$RUNNER_TOOL_CACHE/Ruby/${ruby#ruby-}/$arch" >> $GITHUB_ENV
         else
           echo "PREFIX=$HOME/.rubies/$ruby" >> $GITHUB_ENV
         fi

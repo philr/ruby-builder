@@ -6,11 +6,11 @@ on:
 jobs:
   # Build stable releases
   build:
-    if: false
+    if: true
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04, macos-13 ]
+        os: [ ubuntu-20.04, ubuntu-22.04 ]
         ruby: [ jruby-9.1.17.0, jruby-9.2.21.0 ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -164,7 +164,7 @@ jobs:
       run: gh release upload "${{ steps.info.outputs.tag }}" "${{ steps.ruby.outputs.ruby }}-${{ steps.platform.outputs.platform }}.tar.gz"
 
   buildJRubyWindows:
-    if: true
+    if: false
     strategy:
       fail-fast: false
       matrix:
